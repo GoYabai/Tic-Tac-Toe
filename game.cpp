@@ -2395,9 +2395,32 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
             if (board[i][j] == '-')
             {
                 board[i][j] = botSymbol;
+                if  (checkWin(board, size, botSymbol, goal, EndRule::NONE))
+                {
+                    board[i][j] = '-';
+                    return {i, j};
+                }
+                board[i][j] = '-';
             }
         }
     }
+    for (int i = 0; i < size; i++)
+    {
+        for (int j = 0; j < size; j++)
+        {
+            if (board[i][j] == '-')
+            {
+                board[i][j] = playerSymbol;
+                if  (checkWin(board, size, playerSymbol, goal, EndRule::NONE))
+                {
+                    board[i][j] = '-';
+                    return {i, j};
+                }
+                board[i][j] = '-';
+            }
+        }
+    }
+    return random_pick(board, size);
 }
 
 // Level 3
