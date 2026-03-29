@@ -173,6 +173,8 @@
 #include <thread>
 #include <type_traits>
 #include <utility>
+#include <algorithm>
+#include <vector>
 
 /* ------------------------------------------------------------ */
 /* -------------------- [GLOBAL VARIABLES] -------------------- */
@@ -235,7 +237,7 @@ const bool TIME_ENABLED = true;
 
 // Fixed seed ensures deterministic behavior during testing.
 // Change the seed if you want different random games.
-const int RANDOM_SEED = 2017;
+const int RANDOM_SEED = 2013;
 
 // constants
 /**
@@ -781,7 +783,10 @@ pII simple_heuristic(char board[][BOARD_N_MAX], const int size, const int goal, 
  * implemented without modifying the rest of the game logic.
  */
 pII hard_level(char board[][BOARD_N_MAX], const int size, const int goal, const char botSymbol, const char playerSymbol);
-
+int minimax(char board[][BOARD_N_MAX], int size, int goal, char botSymbol, char playerSymbol, int depth, bool isMaximizing, int alpha, int beta);
+std::vector<pII> getCandidateMoves(const char board[][BOARD_N_MAX], const int size);
+int getScore(int count, int blocks, int goal);
+int evaluateBoard(const char board[][BOARD_N_MAX], int size, int goal, char botSymbol, char playerSymbol);
 // Game Helper
 /**
  * Utility helper functions used across modules.
@@ -1847,11 +1852,6 @@ GameResult playGame(const RunConfig& config,
     while(true) {
     //      a) display board
     //      displayBoard(...)
-        if (config.interactive)
-        {
-            displayBoard(gameSetup.board, gameSetup.size);
-            showPlayer(currentPlayer, is_bot);
-        }
     //      b) determine if player is human or bot
         if (gameSetup.mode == GameMode::EVE)
         {
@@ -1871,6 +1871,12 @@ GameResult playGame(const RunConfig& config,
             {
                 is_bot = false;
             }
+        }
+
+        if (config.interactive)
+        {
+            displayBoard(gameSetup.board, gameSetup.size);
+            showPlayer(currentPlayer, is_bot);
         }
     //      c) get move
     //         human -> getPlayerMove()
@@ -2324,10 +2330,8 @@ pII botMove(char board[][BOARD_N_MAX],
             //   - evaluation function
             //   - pattern detection
 
-            // return hard_level(board, size, goal, symbol, opponent)
+            return hard_level(board, size, goal, symbol, opponent);
 
-            // fallback (avoid crash)
-            return random_pick(board, size);
 
         default:
             return random_pick(board, size);
@@ -2395,7 +2399,7 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
             if (board[i][j] == '-')
             {
                 board[i][j] = botSymbol;
-                if  (checkWin(board, size, botSymbol, goal, EndRule::NONE))
+                if  (checkWin(board, size, botSymbol, goal, EndRule::OPEN_TWO))
                 {
                     board[i][j] = '-';
                     return {i, j};
@@ -2411,7 +2415,7 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
             if (board[i][j] == '-')
             {
                 board[i][j] = playerSymbol;
-                if  (checkWin(board, size, playerSymbol, goal, EndRule::NONE))
+                if  (checkWin(board, size, playerSymbol, goal, EndRule::OPEN_TWO))
                 {
                     board[i][j] = '-';
                     return {i, j};
@@ -2440,15 +2444,250 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
  * You may also combine multiple techniques.
  */
 
-pII hard_level(char board[][BOARD_N_MAX],
-               const int size,
-               const int goal,
-               const char botSymbol,
-               const char playerSymbol) {
-    // TODO: optional bonus implementation
+// Hàm của bạn đã include sẵn <algorithm> và có biến 'generator' toàn cục, rất tiện lợi!
 
-    // fallback
-    return random_pick(board, size);
+pII hard_level(char board[][BOARD_N_MAX], const int size, const int goal, const char botSymbol, const char playerSymbol) {
+    int best_score = -10000000;
+    pII best_move = {-1, -1};
+    
+    std::vector<pII> candidates = getCandidateMoves(board, size);
+    if (candidates.empty()) return {size / 2, size / 2};
+
+    std::shuffle(candidates.begin(), candidates.end(), generator);
+
+    int alpha = -10000000;
+    int beta = 10000000;
+
+    for (pII move : candidates) {
+        int i = move.first;
+        int j = move.second;
+        
+        board[i][j] = botSymbol;
+        int score = minimax(board, size, goal, botSymbol, playerSymbol, 1, false, alpha, beta);
+        board[i][j] = '-';
+        
+        if (score > best_score) {
+            best_score = score;
+            best_move = {i, j};
+        } 
+
+        alpha = std::max(alpha, best_score);
+    }
+
+    if (best_move.first == -1) return random_pick(board, size);
+    return best_move;
+}
+
+std::vector<pII> getCandidateMoves(const char board[][BOARD_N_MAX], const int size)
+{
+    std::vector<pII> candidates;
+    for (int i = 0; i < size; i++)
+    {
+        for (int j = 0; j < size; j++)
+        {
+            if (board[i][j] != '-')
+            {
+                continue;
+            }
+
+            bool has_neighbor = false;
+            for (int dx = -2; dx < 3; dx++)
+            {
+                for (int dy = -2; dy < 3; dy++)
+                {
+                    int ni = i + dx;
+                    int nj = j + dy;
+                    if (ni < 0 || ni >= size || nj < 0 || nj >= size)
+                    {
+                        continue;
+                    }
+                    if (board[ni][nj] != '-')
+                    {
+                        candidates.push_back({i, j});
+                        has_neighbor = true;
+                        break;
+                    }
+                }
+                if (has_neighbor)
+                {
+                    break;
+                }
+            }
+        }
+    }
+    return candidates;
+}
+
+int getScore(int count, int blocks, int goal) {
+    if (blocks > 0) {
+        return 0; 
+    }
+    
+    if (count >= goal) return 10000000;
+    
+    if (count == goal - 1) return 100000;
+    if (count == goal - 2) return 5000;
+    if (count == goal - 3) return 500;
+    
+    return 0;
+}
+
+int evaluateBoard(const char board[][BOARD_N_MAX], int size, int goal, char botSymbol, char playerSymbol) {
+    int botScore = 0;
+    int playerScore = 0;
+    int dx[4] = {0, 1, 1, 1};
+    int dy[4] = {1, 0, 1, -1};
+
+    for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            if (board[i][j] != '-') {
+                char currentSymbol = board[i][j];
+                for (int d = 0; d < 4; d++) {
+                    int count = 1;
+                    int block = 0;
+                    int k = 1;
+                    while (true)
+                    {
+                        int ni = i + k * dx[d];
+                        int nj = j + k * dy[d];
+                        if (ni < 0 || ni >= size || nj < 0 || nj >= size)
+                        {
+                            block++;
+                            break; 
+                        }
+                        if (board[ni][nj] == currentSymbol)
+                        {
+                            count++;
+                            k++;
+                        }
+                        else if (board[ni][nj] != '-')
+                        {
+                            block++;
+                            break;
+                        }
+                        else {
+                            break;
+                        }
+                    }
+
+                    int head_x = i - dx[d];
+                    int head_y = j - dy[d];
+                    
+                    if (head_x < 0 || head_x >= size || head_y < 0 || head_y >= size) {
+                        block++;
+                    }
+                    else if (board[head_x][head_y] != '-' && board[head_x][head_y] != currentSymbol) {
+                        block++;
+                    }
+
+                    else if (board[head_x][head_y] == currentSymbol) {
+                        continue; 
+                    }
+
+                    if (currentSymbol == botSymbol) {
+                        botScore += getScore(count, block, goal);
+                    }
+                    else
+                    {
+                        playerScore += getScore(count, block, goal);
+                    }
+                }
+            }
+        }
+    }
+    return botScore - playerScore;
+}
+
+int minimax(
+    char board[][BOARD_N_MAX],
+    int size,
+    int goal,
+    char botSymbol,
+    char playerSymbol,
+    int depth,
+    bool isMaximizing,
+    int alpha,
+    int beta)
+{
+    if (checkWin(board, size, botSymbol, goal, EndRule::OPEN_TWO))
+    {
+        return 10000000 - depth;
+    }
+    if (checkWin(board, size, playerSymbol, goal, EndRule::OPEN_TWO))
+    {
+        return depth - 10000000;
+    }
+    if (checkDraw(board, size))
+    {
+        return 0;
+    }
+    if (depth >= 4)
+    {
+        return evaluateBoard(board, size, goal, botSymbol, playerSymbol);
+    }
+    std::vector<pII> candidates = getCandidateMoves(board, size);
+    if (isMaximizing)
+    {
+        int best_score = -10000000;
+        for (pII move : candidates)
+        {
+            int i = move.first;
+            int j = move.second;
+            if (board[i][j] == '-')
+            {
+                board[i][j] = botSymbol;
+                int score = minimax(
+                    board,
+                    size,
+                    goal,
+                    botSymbol,
+                    playerSymbol,
+                    depth + 1,
+                    false,
+                    alpha,
+                    beta);
+                board[i][j] = '-';
+                best_score = std::max(best_score, score);
+                alpha = std::max(alpha, best_score);
+                if (beta <= alpha)
+                {
+                    break;
+                }
+            }
+        }
+    return best_score;
+    }
+    else
+    {
+        int best_score = 10000000;
+        for (pII move : candidates)
+        {
+            int i = move.first;
+            int j = move.second;
+            if (board[i][j] == '-')
+            {
+                board[i][j] = playerSymbol;
+                int score = minimax(
+                    board,
+                    size,
+                    goal,
+                    botSymbol,
+                    playerSymbol,
+                    depth + 1,
+                    true,
+                    alpha,
+                    beta);
+                board[i][j] = '-';
+                best_score = std::min(best_score, score);
+                beta = std::min(beta, best_score);
+                if (beta <= alpha)
+                {
+                    break;
+                }
+            }
+        }
+        return best_score;
+    }
 }
 
 /* ---------- Game Helper ---------- */
