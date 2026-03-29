@@ -18,6 +18,29 @@ Tic-Tac-Toe (Console Edition) is a highly customizable, terminal-based strategy 
 * AI (Medium) analyzes the board state to actively block your winning moves and prioritize its own.
 * Game automatically detects terminal states (Win, Lose, or Full-board Draw).
 
+## 🤖 Bot Difficulty Explained
+
+### 🟢 EASY: Random Selection
+* **Algorithm:** Pure Randomness.
+* **Logic:** Collects all empty cells and picks one randomly using `std::mt19937`.
+* **Behavior:** Unpredictable and has no strategy.
+
+### 🟡 MEDIUM: One-Step Heuristic
+* **Algorithm:** Greedy Approach.
+* **Logic:** 1. **Win:** Checks if any move wins immediately.
+  2. **Block:** If not, blocks the opponent's immediate winning move.
+  3. **Random:** Otherwise, picks a random cell.
+* **Behavior:** Reactive; punishes simple blunders but doesn't plan ahead.
+
+### 🔴 HARD: Optimized Minimax
+* **Algorithm:** Minimax with Alpha-Beta Pruning.
+* **Key Components:**
+  * **Minimax:** Recursively simulates game states (depth: 4) to find the optimal path.
+  * **Alpha-Beta Pruning:** Skips redundant branches to boost computation speed.
+  * **Candidate Filtering:** Only evaluates cells near existing pieces to optimize search space.
+  * **Evaluation Function:** Scores the board based on chain lengths and "Open Ends" (crucial for `OPEN_TWO` rules).
+* **Behavior:** Proactive; anticipates opponent moves and builds long-term threats.
+
 ---
 
 ## Installation
