@@ -1724,6 +1724,9 @@ void startGame(const RunConfig& config,
                     case BotLevel::HARD:
                         levelStr = "HARD";
                         break;
+                    default:
+                        levelStr = "INVALID";
+                        break;
                 }
                 std::string Mess = "Bot difficulty chosen successfully: " + levelStr;
                 GameLogger::log(Mess, GameLogger::Level::INFO);
@@ -1758,6 +1761,9 @@ void startGame(const RunConfig& config,
                     case BotLevel::HARD:
                         levelStr0 = "HARD";
                         break;
+                    default:
+                        levelStr0 = "INVALID";
+                        break;
                 }
                 std::string levelStr1;
                 switch (gameSetup.levels[1])
@@ -1770,6 +1776,9 @@ void startGame(const RunConfig& config,
                         break;
                     case BotLevel::HARD:
                         levelStr1 = "HARD";
+                        break;
+                    default:
+                        levelStr1 = "INVALID";
                         break;
                 }
                 std::string Mess = "Bot difficulty chosen successfully: Bot_1 - " + levelStr0 + " " + "Bot_2 - " + levelStr1;
@@ -2587,7 +2596,7 @@ int evaluateBoard(const char board[][BOARD_N_MAX], int size, int goal, char botS
                     if (currentSymbol == botSymbol) {
                         botScore += getScore(count, block, goal);
                     }
-                    else
+                    else if (currentSymbol == playerSymbol)
                     {
                         playerScore += getScore(count, block, goal);
                     }
