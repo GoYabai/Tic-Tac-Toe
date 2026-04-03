@@ -2453,8 +2453,6 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
  * You may also combine multiple techniques.
  */
 
-// Hàm của bạn đã include sẵn <algorithm> và có biến 'generator' toàn cục, rất tiện lợi!
-
 pII hard_level(char board[][BOARD_N_MAX], const int size, const int goal, const char botSymbol, const char playerSymbol) {
     int best_score = -10000000;
     pII best_move = {-1, -1};
