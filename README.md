@@ -54,7 +54,7 @@ Tic-Tac-Toe (Console Edition) is a highly customizable, terminal-based strategy 
 
 1. Clone the repository:
    ```bash
-   git clone [https://github.com/GoYabai/Tic-Tac-Toe.git](https://github.com/GoYabai/Tic-Tac-Toe.git)
+   git clone https://github.com/GoYabai/Tic-Tac-Toe.git
    cd Tic-Tac-Toe
 2. Compile the game:
    ```bash
