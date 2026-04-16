@@ -2453,8 +2453,10 @@ pII simple_heuristic(char board[][BOARD_N_MAX],
  * You may also combine multiple techniques.
  */
 
+// Hàm của bạn đã include sẵn <algorithm> và có biến 'generator' toàn cục, rất tiện lợi!
+
 pII hard_level(char board[][BOARD_N_MAX], const int size, const int goal, const char botSymbol, const char playerSymbol) {
-    int best_score = -10000000;
+    int best_score = -100000;
     pII best_move = {-1, -1};
     
     std::vector<pII> candidates = getCandidateMoves(board, size);
@@ -2462,8 +2464,8 @@ pII hard_level(char board[][BOARD_N_MAX], const int size, const int goal, const 
 
     std::shuffle(candidates.begin(), candidates.end(), generator);
 
-    int alpha = -10000000;
-    int beta = 10000000;
+    int alpha = -100000;
+    int beta = 100000;
 
     for (pII move : candidates) {
         int i = move.first;
@@ -2526,17 +2528,14 @@ std::vector<pII> getCandidateMoves(const char board[][BOARD_N_MAX], const int si
 }
 
 int getScore(int count, int blocks, int goal) {
-    if (blocks > 0) {
-        return 0; 
-    }
-    
-    if (count >= goal) return 10000000;
-    
-    if (count == goal - 1) return 100000;
-    if (count == goal - 2) return 5000;
-    if (count == goal - 3) return 500;
-    
-    return 0;
+    if (blocks == 2) return 0;
+    int score = 0;
+    if (count >= goal) score = 10000;
+    else if (count == goal - 1) score = 1000;
+    else if (count == goal - 2) score = 100;
+    else if (count == goal - 3) score = 10;
+    if (blocks == 1) score /= 5; 
+    return score;
 }
 
 int evaluateBoard(const char board[][BOARD_N_MAX], int size, int goal, char botSymbol, char playerSymbol) {
@@ -2618,11 +2617,11 @@ int minimax(
 {
     if (checkWin(board, size, botSymbol, goal, EndRule::OPEN_TWO))
     {
-        return 10000000 - depth;
+        return 100000 - depth;
     }
     if (checkWin(board, size, playerSymbol, goal, EndRule::OPEN_TWO))
     {
-        return depth - 10000000;
+        return depth - 100000;
     }
     if (checkDraw(board, size))
     {
@@ -2635,7 +2634,7 @@ int minimax(
     std::vector<pII> candidates = getCandidateMoves(board, size);
     if (isMaximizing)
     {
-        int best_score = -10000000;
+        int best_score = -100000;
         for (pII move : candidates)
         {
             int i = move.first;
@@ -2666,7 +2665,7 @@ int minimax(
     }
     else
     {
-        int best_score = 10000000;
+        int best_score = 100000;
         for (pII move : candidates)
         {
             int i = move.first;
