@@ -2661,7 +2661,7 @@ int minimax(
                 }
             }
         }
-    return best_score;
+        return best_score;
     }
     else
     {
