@@ -265,7 +265,7 @@ const int SLEEP_TIME = 1500;
  * std::mt19937 is a high-quality pseudo-random
  * number generator based on the Mersenne Twister algorithm.
  */
-std::mt19937 generator(RANDOM_SEED);
+std::mt19937 generator(std::random_device{}());
 
 /**
  * Bot difficulty levels.
@@ -2369,8 +2369,8 @@ pII random_pick(char board[][BOARD_N_MAX],
     pII move;
     do
     {
-        move.first = rand() % size;
-        move.second = rand() % size; 
+        move.first = generator() % size;
+        move.second = generator() % size; 
     }
     while (isValidMove(board, size, move.first, move.second) == false);
     return move;
@@ -2483,7 +2483,6 @@ pII hard_level(char board[][BOARD_N_MAX], const int size, const int goal, const 
         alpha = std::max(alpha, best_score);
     }
 
-    if (best_move.first == -1) return random_pick(board, size);
     return best_move;
 }
 
@@ -2541,67 +2540,69 @@ int getScore(int count, int blocks, int goal) {
 int evaluateBoard(const char board[][BOARD_N_MAX], int size, int goal, char botSymbol, char playerSymbol) {
     int botScore = 0;
     int playerScore = 0;
+    
     int dx[4] = {0, 1, 1, 1};
     int dy[4] = {1, 0, 1, -1};
 
-    for (int i = 0; i < size; i++) {
-        for (int j = 0; j < size; j++) {
-            if (board[i][j] != '-') {
-                char currentSymbol = board[i][j];
-                for (int d = 0; d < 4; d++) {
-                    int count = 1;
-                    int block = 0;
-                    int k = 1;
-                    while (true)
-                    {
-                        int ni = i + k * dx[d];
-                        int nj = j + k * dy[d];
-                        if (ni < 0 || ni >= size || nj < 0 || nj >= size)
-                        {
-                            block++;
-                            break; 
-                        }
-                        if (board[ni][nj] == currentSymbol)
-                        {
-                            count++;
-                            k++;
-                        }
-                        else if (board[ni][nj] != '-')
-                        {
-                            block++;
-                            break;
-                        }
-                        else {
-                            break;
-                        }
-                    }
+    for (int i = 0; i < size; ++i) {
+        for (int j = 0; j < size; ++j) {
+            if (board[i][j] == '-') continue; 
+            
+            char symbol = board[i][j];
+            
+            for (int d = 0; d < 4; ++d) {
+                int prev_i = i - dx[d];
+                int prev_j = j - dy[d];
+                
+                if (prev_i >= 0 &&
+                    prev_i < size &&
+                    prev_j >= 0 &&
+                    prev_j < size &&
+                    board[prev_i][prev_j] == symbol) {
+                    continue; 
+                }
 
-                    int head_x = i - dx[d];
-                    int head_y = j - dy[d];
-                    
-                    if (head_x < 0 || head_x >= size || head_y < 0 || head_y >= size) {
-                        block++;
-                    }
-                    else if (board[head_x][head_y] != '-' && board[head_x][head_y] != currentSymbol) {
-                        block++;
-                    }
+                int count = 1;
+                int blocks = 0;
 
-                    else if (board[head_x][head_y] == currentSymbol) {
-                        continue; 
-                    }
+                if (prev_i < 0 ||
+                    prev_i >= size ||
+                    prev_j < 0 ||
+                    prev_j >= size ||
+                    board[prev_i][prev_j] != '-') {
+                    blocks++;
+                }
 
-                    if (currentSymbol == botSymbol) {
-                        botScore += getScore(count, block, goal);
-                    }
-                    else if (currentSymbol == playerSymbol)
-                    {
-                        playerScore += getScore(count, block, goal);
-                    }
+                int next_i = i + dx[d];
+                int next_j = j + dy[d];
+                while (next_i >= 0 &&
+                    next_i < size &&
+                    next_j >= 0 &&
+                    next_j < size &&
+                    board[next_i][next_j] == symbol) {
+                    count++;
+                    next_i += dx[d];
+                    next_j += dy[d];
+                }
+
+                if (next_i < 0 ||
+                    next_i >= size ||
+                    next_j < 0 ||
+                    next_j >= size ||
+                    board[next_i][next_j] != '-') {
+                    blocks++;
+                }
+
+                int score = getScore(count, blocks, goal);
+                if (symbol == botSymbol) {
+                    botScore += score;
+                } else {
+                    playerScore += score;
                 }
             }
         }
     }
-    return botScore - playerScore;
+    return botScore - (playerScore * 2); 
 }
 
 int minimax(
@@ -2627,7 +2628,7 @@ int minimax(
     {
         return 0;
     }
-    if (depth >= 4)
+    if (depth >= 5)
     {
         return evaluateBoard(board, size, goal, botSymbol, playerSymbol);
     }
